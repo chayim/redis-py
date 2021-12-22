@@ -768,6 +768,7 @@ class Redis(RedisModuleCommands, CoreCommands, SentinelCommands):
         "STRALGO": parse_stralgo,
         "PUBSUB NUMSUB": parse_pubsub_numsub,
         "RANDOMKEY": lambda r: r and r or None,
+        "RESET": str_if_bytes,
         "SCAN": parse_scan,
         "SCRIPT EXISTS": lambda r: list(map(bool, r)),
         "SCRIPT FLUSH": bool_ok,
@@ -1530,6 +1531,8 @@ class PubSub:
         with a message handler, the handler is invoked instead of a parsed
         message being returned.
         """
+        if response is None:
+            return None
         message_type = str_if_bytes(response[0])
         if message_type == "pmessage":
             message = {

@@ -397,6 +397,28 @@ class TestRedisCommands:
         assert "prefixes" in res
 
     @pytest.mark.onlynoncluster
+    @skip_if_server_version_lt("6.0.0")
+    def test_client_tracking(self, r, r2):
+
+        # simple case
+        assert r.client_tracking_on()
+        assert r.client_tracking_off()
+
+        # id based
+        client_id = r.client_id()
+        assert r.client_tracking_on(client_id)
+        assert r.client_tracking_off(client_id)
+
+        # id exists
+        client_id = r2.client_id()
+        assert r.client_tracking_on(client_id)
+        assert r2.client_tracking_off(client_id)
+
+        # now with some prefixes
+        with pytest.raises(exceptions.DataError):
+            assert r.client_tracking_on(prefix=["foo", "bar", "blee"])
+
+    @pytest.mark.onlynoncluster
     @skip_if_server_version_lt("5.0.0")
     def test_client_unblock(self, r):
         myid = r.client_id()
@@ -557,6 +579,13 @@ class TestRedisCommands:
         with pytest.raises(exceptions.RedisError):
             r.client_pause(timeout="not an integer")
 
+    @skip_if_server_version_lt("6.2.0")
+    def test_client_pause_all(self, r, r2):
+        assert r.client_pause(1, all=False)
+        assert r2.set("foo", "bar")
+        assert r2.get("foo") == b"bar"
+        assert r.get("foo") == b"bar"
+
     @pytest.mark.onlynoncluster
     @skip_if_server_version_lt("6.2.0")
     @skip_if_redis_enterprise()
@@ -639,6 +668,11 @@ class TestRedisCommands:
 
         lolwut = r.lolwut(5, 6, 7, 8).decode("utf-8")
         assert "Redis ver." in lolwut
+
+    @pytest.mark.onlynoncluster
+    @skip_if_server_version_lt("6.2.0")
+    def test_reset(self, r):
+        assert r.reset() == "RESET"
 
     def test_object(self, r):
         r["a"] = "foo"
